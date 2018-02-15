@@ -1,0 +1,2 @@
+# djs
+Discord.js scripts
