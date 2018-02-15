@@ -19,8 +19,9 @@ client.on("message", (message) => {
 			}
 		}
 	}
-	if(client.user.id === message.author.id && message.content.startsWith(prefix) && message.guild !== null){
+	if(client.user.id === message.author.id && message.content.startsWith(prefix) && (message.guild !== null || message.content.includes("OVERRIDE"))){
 		//Normal commands
+		message.content = message.content.replace("OVERRIDE");
 		let arg = message.content.replace(prefix, "").split(separator);
 		switch(arg[0]){
 			case "help":
