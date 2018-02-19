@@ -10,6 +10,7 @@ var processes = [];
 var prefix = ":";
 var separator = " ";
 var specialSp = "...";
+var enableLEI = false;
 
 client.on("message", (message) => {
 	if(client.user.id === message.author.id){
@@ -19,8 +20,10 @@ client.on("message", (message) => {
 			}
 		}
 	}
+	if(enableLEI && message.content.toLowerCase().replace(/ /g, "").includes('lel')) message.channel.send("lei 💮"); message.react("💮");
 	if(client.user.id === message.author.id && message.content.startsWith(prefix) && (message.guild !== null || message.content.includes("OVERRIDE"))){
 		//Normal commands
+		if(message.content === "lei 💮") setTimeout(function(){message.delete();}, 10000);
 		message.content = message.content.replace("OVERRIDE");
 		let arg = message.content.replace(prefix, "").split(separator);
 		switch(arg[0]){
@@ -70,6 +73,12 @@ client.on("message", (message) => {
 		arg = message.content.replace(prefix, "").split(specialSp);
 		
 		switch(arg[0]){
+			case "enablelei":
+				enableLEI = true;
+				break;
+			case "disablelei":
+				enableLEI = false;
+				break;
 			case "constant":
 			case "phantom":
 			case "sensitive":
