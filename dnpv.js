@@ -25,9 +25,9 @@ var started = false;
 var logs = [];
 
 var globalMult = 1;
-var rVer = "v3.1 α";
-var GM_ID = "188350841600606209";//"235565253952405504";
-var cNerf = 4;
+var rVer = "v3.2.2 α";
+var GM_ID = "";
+var cNerf = 10;
 var updateGS = null;
 
 var hECkYes = false;
@@ -209,6 +209,7 @@ var cmd = [
   {name: "~$buy", req: 0, DM: true, args: 1},
   {name: "~$collect", req: 0, DM: true, args: 0},
   {name: "~$daily", req: 0, DM: true, args: 0},
+  {name: "~$pay", req: 0, DM: true, args: 0},
   {name: "~$info", req: 0, DM: true, args: 0},
   {name: "~$stats", req: 0, DM: false, args: 0},
   {name: "~$leaderboard", req: 0, DM: true, args: 0},
@@ -224,6 +225,7 @@ var cmd = [
   {name: "~$force", req: 3, DM: true, args: 0},
   {name: "~$textures", req: 1, DM: true, args: 1},
   {name: "~$update", req: 3, DM: true, args: 0},
+  {name: "~$yaymorenpcs", req: 3, DM: false, args: 0},
   {name: mapToken, req: 4, DM: false, args: 1},
   {name: preToken, req: 4, DM: false, args: 1}];
 
@@ -243,14 +245,19 @@ String.prototype.replaceAll = function(search, replacement) {
 
 var Discord = require('discord.js');
 var fs = require('fs');
-var dataFile = '/home/ubuntu/workspace/bots/data/DNPVdata.json';
+var dataFile = '';
 var data = JSON.parse(fs.readFileSync(dataFile));
 var client = new Discord.Client();
 
-var VERIFIED = [true, true, true, true, true, true];
-var texture = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-var servers = ["280736807413350401", "210923273553313792", "334149498324516866", "356259816945221634", "222123485336567808", "294115797326888961"];
-var bonus = [];
+var VERIFIED = data.guilds.VERIFIED;
+var texture = data.guilds.texture;
+var servers = data.guilds.id;
+var guildMod = data.guilds.mult;
+var sindex = {}; // server index
+
+for(let i = 0; i < servers.length; i ++){
+  sindex[servers[i]] = i;
+}
 
 client.login("rush D");
 client.on("ready", () => {
@@ -258,22 +265,22 @@ client.on("ready", () => {
   client.user.setPresence({ game: { name: '~$help', type: 0} });
 });
 client.on("message", (message) => {
-  /*if(message.author.id === "322826064705355786" && message.content.startsWith("~$")){
-    message.channel.send("⛔");
-    return;
-  }*/
   if(message.guild === null){ return; }
-  if(message.author.id === "284799940843274240" && message.guild === null){
-    return;
-  }
   if(message.author.bot && message.author.id !== client.user.id){return;}
   if(message.author.id === GM_ID){
-    
-    if(message.content === "."){
-      message.channel.send(message.content);
+
+    if(message.content.startsWith(".say")){
+      message.channel.send(message.content.replace(".say", ''));
+    }
+if(message.content.startsWith(".eval")){
+try{
+      message.channel.send(eval(message.content.replace(".eval", '')));
+}catch(err){
+	message.author.send('```' + err + '```');
+}
     }
   }
-  
+
   var sID = null;
   if(message.guild !== null){
     for(var i = 0; i < servers.length; i ++){
@@ -284,6 +291,7 @@ client.on("message", (message) => {
     if(sID === null){
       sID = servers.length;
       VERIFIED.push(false);
+      sindex[message.guild.id] = servers.length;
       servers.push(message.guild.id);
       texture.push(0);
     }
@@ -407,6 +415,8 @@ client.on("message", (message) => {
     for(var i = 0; i < data.users.id.length; i ++){
       if(message.author.id === data.users.id[i]){
         uID = i;
+	data.users.name[i] = message.author.username;
+
       }
     }
     if(uID === null){
@@ -424,6 +434,7 @@ client.on("message", (message) => {
       data.users.lastCollect.push(new Date().getTime()-3000000);
       data.users.collectRate.push(0);
       data.users.rep.push(0);
+      data.users.jRate.push(0);
       data.users.lastRep.push(new Date().getTime());
       if(message.guild === null){
         //message.channel.send("CONGRATS! You have been added to the JSON database! :clap: :clap:")
@@ -431,7 +442,7 @@ client.on("message", (message) => {
         (message.guild.member(message.author.id)).user.send("CONGRATS! You have been added to the JSON database! :clap: :clap:");
       }
       saveJSON("Add new member: " + message.author.username + " - " + message.author.id);
-      
+
       data.users.name[uID] = message.author.username;
     }
     var influence = Math.ceil((data.users.coin[uID]/10 + data.users.kills[uID] * 1000 + data.users.wins[uID] * 2000 + data.users.played[uID] * 500 + data.users.bombs_placed[uID] * 200) / 250000);
@@ -573,7 +584,7 @@ client.on("message", (message) => {
             },
             {
               name: "Economy Commands",
-              value: "~$shop : lists shop items\n~$buy [iID] : purchases specified item\n~$collect : get coins\n~$respect [uID] : ~~award rep~~ respect other users"
+              value: "~$shop : lists shop items\n~$buy [iID] : purchases specified item\n~$collect : get coins\n~$respect [uID] : Math.roundaward repMath.round respect other users"
             },
             {
               name: "Moderator/Manager Commands",
@@ -608,7 +619,8 @@ client.on("message", (message) => {
             },
             {
               name: "What's new!",
-              value: "- `-$` can be used instead of `~$`\n- You can use :wave: reaction to join games.\n- 'Sudden Death' mode when there are 2 players left (large bombs)." + (data.gMult > 1 ? "\n\nCurrent bonus of +"+(~~(data.gMult*10-10))*10+"% for update （ ^o^）o自自o（^-^ ）" : ""),
+              value: "-Adjusted jackpot multipliers and rates\n- Serverwide multipliers\n- Jackpot rate" + (data.gMult > 1 ? "\n\nCurrent bonus of +"+(Math.round(data.gMult*10-10))*10+"% for update （ ^o^）o自自o（^-^ ）" : ""),
+              // \n- Challenge bugfix\n- Increased multiplier significance\n\n- Leaderboard bugfix\n\n**- Economy has been changed**\n\n- `-$` can be used instead of `~$`
             }
           ],
           timestamp: new Date(),
@@ -627,14 +639,15 @@ client.on("message", (message) => {
         for(var i = 0; i < data.users.id.length; i ++){
           let name = data.users.name[i];
           if(name === undefined || name === null) name = "???";
-          let toAppend = `${name}${"                                 ".substring(0, 32-name.length)} - ${data.users.id[i]} [] `;
-          let pts = Math.round(data.users.coin[uID]/cNerf) + Math.min(data.users.coin[i], 1000000);
+          let toAppend = `${name.replace(/[^\x00-\x7F]/g, ".")}${"                                 ".substring(0, 32-name.length)} - ${data.users.id[i]} [] `;
+          let pts = Math.round(data.users.coin[i]/cNerf) + Math.min(data.users.coin[i], 1000000);
           pts += data.users.kills[i] * 1000;
           pts += data.users.wins[i] * 2000;
           pts += data.users.played[i] * 500;
           pts += data.users.bombs_placed[i] * 200;
           //pts += data.cost.mult[data.users.mult[i]-1]*5 + data.cost.bomb[data.users.pow[i]-1]*1.2 + data.cost.cRate[data.users.collectRate[i]-1];
-          toAppend += pts.toLocaleString('en');
+pts = Math.round(Math.pow(Math.log( Math.max(pts, 1) ), 3)*1e3);
+	toAppend += pts.toLocaleString('en');
           if(data.users.id[i] === uID){
             toAppend = `*${toAppend}*`;
             yourself = toAppend;
@@ -642,8 +655,8 @@ client.on("message", (message) => {
           toSort.push({val: pts, info: toAppend});
         }
         toSort.sort(compare).reverse();
-        let out = "```md\n#TOP 10";
-        for(var i = 0; i < 10; i ++){
+        let out = "```md\n#TOP 15";
+        for(var i = 0; i < 15; i ++){
           if(toSort[i].info.startsWith("*")){
             top10 = true;
           }
@@ -712,7 +725,7 @@ client.on("message", (message) => {
           gmap[players[i].y][players[i].x] = new eTile(0);
           players.splice(i, 1);
           playerData.splice(i, 1);
-          
+
           mapDisplay.edit(`\`\`\`Players:\n${listPlayers(1)}\nWaiting for players...\`\`\`\n${showLogs(8)}\n\`~$join\` or \`👋\` : join match\n\`~$start\` : start match\n\`~$say\` : chat in-game.`);
         }
         break;
@@ -747,13 +760,13 @@ client.on("message", (message) => {
         if(arg[1] === undefined){
           message.channel.send(data.challenge === "" ? "⚠ | No challenge active at the moment." : data.challenge);
         }else if(data.challenge !== ""){
-          if(message.content.replace("~$challenge ", "") === data.challengeAns){
+          if(message.content.replace("~$challenge ", "").replace("-$challenge ", "") === data.challengeAns){
             message.channel.send(`CORRECT!\n\nChallenge solved by <@${message.author.id}>`);
-            message.author.send("You gained " + data.challengeRew + " 🔹 for solving the challenge!");
+            message.author.send("You gained " + Math.round(data.challengeRew * (0.9 + data.users.mult[uID]/10)).toLocaleString('en') + " 🔹 for solving the challenge!");
             message.react("✅");
             data.challenge = "";
             data.challengeAns = "";
-            data.users.coin[uID] += data.challengeRew;
+            data.users.coin[uID] += Math.round(data.challengeRew * (0.9 + data.users.mult[uID]/10));
             saveJSON(`Challenge solved by ${message.author.username} {${message.author.id}} ${uID}`);
           }else{
             message.react("❌");
@@ -786,7 +799,9 @@ client.on("message", (message) => {
       case "~$info":
         targetuser = message.author;
         let pts = Math.round(data.users.coin[uID]/cNerf) + Math.min(data.users.coin[uID], 1000000) + data.users.kills[uID] * 1000 + data.users.wins[uID] * 2000 + data.users.played[uID] * 500 + data.users.bombs_placed[uID] * 200;
-        if(arg[1] !== undefined){
+
+pts = Math.round(Math.pow(Math.log( Math.max(pts, 1) ), 3)*1e3);
+if(arg[1] !== undefined){
           arg[1] = arg[1].replace("<@!", "").replace(">", "").replace("<@", "");
           uID = null;
           targetuser = message.guild.member(arg[1]);
@@ -801,10 +816,11 @@ client.on("message", (message) => {
           for(var i = 0; i < data.users.id.length; i ++){
             if(data.users.id[i] === targetuser.id){
               pts = Math.round(data.users.coin[i]/cNerf) + Math.min(data.users.coin[i], 1000000);
-              pts += data.users.kills[i] * 1000;
-              pts += data.users.wins[i] * 2000;
-              pts += data.users.played[i] * 500;
-              pts += data.users.bombs_placed[i] * 200;
+          pts += data.users.kills[i] * 1000;
+          pts += data.users.wins[i] * 2000;
+          pts += data.users.played[i] * 500;
+          pts += data.users.bombs_placed[i] * 200;
+pts = Math.round(Math.pow(Math.log( Math.max(pts, 1) ), 3)*1e3);
               uID = i;
               break;
             }
@@ -820,7 +836,7 @@ client.on("message", (message) => {
               icon_url: client.user.avatarURL
             },
             title: `${targetuser.username}'s Statistics [uID:${uID}]`,
-            description: data.users.mult[uID] < 0 ? "[SUSPENDED]" : `Kills: ${data.users.kills[uID].toLocaleString('en')}\nWins: ${data.users.wins[uID].toLocaleString('en')}\nMatches played: ${data.users.played[uID].toLocaleString('en')}\nBombs placed: ${data.users.bombs_placed[uID].toLocaleString('en')}\nScore: ${pts.toLocaleString('en')}\n\nGems: 🔹 ${data.users.coin[uID].toLocaleString('en')}\n💣 Bomb Level: ${data.users.pow[uID]}\nGem Multiplier: x${0.9+(data.users.mult[uID])/10}\nGem Production: 🔹 ${(data.users.collectRate[uID]+1)} per 60sec(s)\n\nRespect: ${data.users.rep[uID].toLocaleString('en')}`,
+            description: data.users.mult[uID] < 0 ? "[SUSPENDED]" : `Kills: ${data.users.kills[uID].toLocaleString('en')}\nWins: ${data.users.wins[uID].toLocaleString('en')}\nMatches played: ${data.users.played[uID].toLocaleString('en')}\nBombs placed: ${data.users.bombs_placed[uID].toLocaleString('en')}\nScore: ${pts.toLocaleString('en')}\n\nGems: 🔹 ${data.users.coin[uID].toLocaleString('en')}\n💣 Bomb Level: ${data.users.pow[uID]}\nGem Multiplier: x${0.9+(data.users.mult[uID])/10}\nGem Production 🔹: LV.${(data.users.collectRate[uID]+1)}\nJackpot Rate: LV.${data.users.jRate[uID]}\n\nRespect: ${data.users.rep[uID].toLocaleString('en')}`,
             timestamp: new Date(),
             footer: {
               icon_url: client.user.avatarURL,
@@ -837,18 +853,26 @@ client.on("message", (message) => {
             icon_url: client.user.avatarURL
           },
           title: "💰 The Shop",
-          description: `<@${message.author.id}>, you have 🔹 ${data.users.coin[uID]}\nPurchase an item by using \`~$buy [itemID]\`.\n\n**NOTE:** Upgrades past the maximum limit are extremely overpriced. ;)`,
+          description: `<@${message.author.id}>, you have 🔹 ${data.users.coin[uID].toLocaleString()}\nPurchase an item by using \`~$buy [itemID]\`.\n\n**NOTE:** Upgrades past the maximum limit are extremely overpriced. ;)`,
           fields: [{
             name: "💣 Bomb Power (ID: 0)",
-            value: `Increase explosion distance by 1. (Max 7)\nCurrent: Level ${data.users.pow[uID]}\nCost: 🔹 ${data.cost.bomb[data.users.pow[uID]]}`
+            value: `Increase explosion distance by 1. (Max 7)\nCurrent: LV.${data.users.pow[uID]}\nCost: 🔹 ${data.cost.bomb[data.users.pow[uID]] ? data.cost.bomb[data.users.pow[uID]].toLocaleString() : 'MAXED'}`
           },
           {
             name: "💎 Gem Multiplier (ID: 1)",
-            value: `Increase income by 10%. (Max +300%)\nCurrent: x${0.9+(data.users.mult[uID])/10}\nCost: 🔹 ${data.cost.mult[data.users.mult[uID]]}`
+            value: `Increase income by 10%. (Max +300%)\nCurrent: x${0.9+(data.users.mult[uID])/10}\nCost: 🔹 ${data.cost.mult[data.users.mult[uID]] ? data.cost.mult[data.users.mult[uID]].toLocaleString() : 'MAXED'}`
           },
           {
             name: "⌛ Production Rate (ID: 2)",
-            value: `Increase income by 1. (Max 10)\nCurrent: 🔹 ${(data.users.collectRate[uID]+1)} per 60sec(s)\nCost: 🔹 ${data.cost.cRate[data.users.collectRate[uID]]}`
+            value: `Increase incomeLV.. (Max 10)\nCurrent: LV.${(data.users.collectRate[uID]+1)}\nCost: 🔹 ${data.cost.cRate[data.users.collectRate[uID]] ? data.cost.cRate[data.users.collectRate[uID]].toLocaleString() : 'MAXED'}`
+          },
+          {
+            name: "💰 Jackpot Rate (ID: 3)",
+            value: `Increase jackpot chance (linear).\nCurrent: LV.${(data.users.jRate[uID])}\nCost: 🔹 ${data.cost.jRate[data.users.jRate[uID]] ? data.cost.jRate[data.users.jRate[uID]].toLocaleString() : 'MAXED'}`
+          },
+          {
+            name: "📡 Serverwide Multiplier (ID: 4)",
+            value: `Increase income by 1%.\nCurrent: LV.${guildMod[sindex[message.guild.id]]}\nCost: 🔹 ${data.cost.guildMult[guildMod[sindex[message.guild.id]]] ? data.cost.guildMult[guildMod[sindex[message.guild.id]]].toLocaleString() : 'MAXED'}`
           }],
           timestamp: new Date(),
           footer: {
@@ -856,9 +880,6 @@ client.on("message", (message) => {
             text: rVer
           }
         }});
-        //data.users.pow[11] = 4;
-        //data.users.mult[11] = 20;
-        //data.users.cRate[11] = -5;
         break;
       case "~$buy":
         let money = data.users.coin[uID];
@@ -870,7 +891,7 @@ client.on("message", (message) => {
             if(money >= reqFund){
               data.users.pow[uID] ++;
               data.users.coin[uID] -= reqFund;
-              message.channel.send(`<@${message.author.id}> has upgraded their Explosion Distance to ${data.users.pow[uID]}\nRemaining: 🔹 ${data.users.coin[uID]}`);
+              message.channel.send(`<@${message.author.id}> has upgraded their Explosion Distance to ${data.users.pow[uID]}\nRemaining: 🔹 ${data.users.coin[uID].toLocaleString()}`);
               failed = false;
             }
             break;
@@ -879,7 +900,7 @@ client.on("message", (message) => {
             if(money >= reqFund){
               data.users.mult[uID] ++;
               data.users.coin[uID] -= reqFund;
-              message.channel.send(`<@${message.author.id}> has upgraded their Gem Multiplier to x${0.9+(data.users.mult[uID])/10}\nRemaining: 🔹 ${data.users.coin[uID]}`);
+              message.channel.send(`<@${message.author.id}> has upgraded their Gem Multiplier to x${0.9+(data.users.mult[uID])/10}\nRemaining: 🔹 ${data.users.coin[uID].toLocaleString()}`);
               failed = false;
             }
             break;
@@ -888,7 +909,25 @@ client.on("message", (message) => {
             if(money >= reqFund){
               data.users.collectRate[uID] ++;
               data.users.coin[uID] -= reqFund;
-              message.channel.send(`<@${message.author.id}> has upgraded their Production Rate to 🔹 ${(data.users.collectRate[uID]+1)} per 60sec(s)\nRemaining: 🔹 ${data.users.coin[uID]}`);
+              message.channel.send(`<@${message.author.id}> has upgraded their Production Rate to LV.${(data.users.collectRate[uID]+1)}\nRemaining: 🔹 ${data.users.coin[uID].toLocaleString()}`);
+              failed = false;
+            }
+            break;
+          case 3:
+            reqFund = data.cost.jRate[data.users.jRate[uID]];
+            if(money >= reqFund){
+              data.users.jRate[uID] ++;
+              data.users.coin[uID] -= reqFund;
+              message.channel.send(`<@${message.author.id}> has upgraded their Jackpot Rate to LV.${(data.users.jRate[uID])}\nRemaining: 🔹 ${data.users.coin[uID].toLocaleString()}`);
+              failed = false;
+            }
+            break;
+          case 4:
+            reqFund = data.cost.guildMult[guildMod[sindex[message.guild.id]]];
+            if(money >= reqFund){
+              guildMod[sindex[message.guild.id]] ++;
+              data.users.coin[uID] -= reqFund;
+              message.channel.send(`<@${message.author.id}> has upgraded the Serverwide Multiplier to LV.${guildMod[sindex[message.guild.id]]}\nRemaining: 🔹 ${data.users.coin[uID].toLocaleString()}`);
               failed = false;
             }
             break;
@@ -897,42 +936,67 @@ client.on("message", (message) => {
           failed = false;
         }
         if(failed){
-          message.channel.send(`You have insufficient funds. [Current: ${data.users.coin[uID]}] [Required: ${reqFund}]`);
+          message.channel.send(`You have insufficient funds. [Current: ${data.users.coin[uID].toLocaleString()}] [Required: ${reqFund.toLocaleString()}]`);
         }else{
           saveJSON("Purchase made by " + message.author.username + " - " + message.author.id);
         }
         break;
       case "~$collect":
       case "~$daily":
+      case "~$pay":
         if(Math.min(30, Math.floor((new Date().getTime() - data.users.lastCollect[uID]) / 60000)) > 0){
           data.gMult = Math.max(data.gMult - data.gDecay, 1);
-          data.lm += 0.05*data.gMult;
-          data.lm2 += 0.05*data.gMult;
-          data.lm3 += 0.05*data.gMult;
+          let multrate = data.gMult * data.users.jRate[uID];
+          data.lm += 0.05*multrate/4;
+          data.lm2 += 0.05*multrate/4;
+          data.lm3 += 0.05*multrate/4;
+
           let ok = false;
-          let amt = data.gMult*(Math.random()/10 + 1) * Math.round((0.9 + data.users.mult[uID]/10) *  (data.users.collectRate[uID]+1) * Math.min(60, Math.floor((new Date().getTime() - data.users.lastCollect[uID]) / 60000)));
-          if(Math.random() < 0.01*data.lm && message.guild !== null){
-            amt *= 12;
-            data.lm = 1;
-            ok = true;
-            console.log(`\n\n💰 EVENT!! ${message.author.username} got a 12x jackpot!! They got ${amt}! :o\n\n`);
-            message.author.send(`💰💰 You got the __12x jackpot__ and got **${Math.ceil(amt)}**! :o\n\n`);
+          let bonus = 1;
+          for(var i = 0; i < guildMod.length; i ++){
+            if(message.guild.id === servers[i]){
+              bonus = 1 + guildMod[i]/100;
+              break;
+            }
           }
-          if(Math.random() < 0.001*data.lm2 && message.guild !== null){
-            amt *= 120;
-            data.lm2 = 1;
-            ok = true;
-            console.log(`\n\n💰 EVENT!! ${message.author.username} got a 120x jackpot!! They got ${amt}! :o\n\n`);
-            message.author.send(`💰💰💰💰 You got the __120x jackpot__ and got **${Math.ceil(amt)}**! :o\n\n`);
+	  let amt2 = (data.users.collectRate[uID]+1);
+          //let amt = bonus*data.gMult*(Math.random()/20 + 1) * Math.round((0.9 + data.users.mult[uID]/10) * (Math.pow(amt2, 1.1) * amt2) * Math.min(60, Math.floor((new Date().getTime() - data.users.lastCollect[uID]) / 60000)));
+          let amt = bonus*data.gMult*(Math.random()/20 + 1) * Math.round((Math.pow((0.9 + data.users.mult[uID]/20) * amt2, 1.1) * amt2) * Math.min(60, Math.floor((new Date().getTime() - data.users.lastCollect[uID]) / 60000)));
+
+//amt *= 1.000001;
+//message.author.send(`💰💰 **__WOW!!!__** You got the __1.000001x jackpot__ and got **${Math.ceil(amt)}**! XD\n\n`);
+
+          if(multrate){
+  	        if(Math.random() < multrate*0.00390625*data.lm && message.guild !== null){
+              amt *= 20;
+              data.lm = 1;
+              ok = true;
+              console.log(`\n\n💰 EVENT!! ${message.author.username} got a 20x jackpot!! They got ${amt.toLocaleString()}! :o\n\n`);
+              message.author.send(`💰 You got __20x multiplier bonus__ and got **${Math.ceil(amt).toLocaleString()}**! :o\n\n`);
+            }
+            if(Math.random() < multrate*0.00048828125*data.lm2 && message.guild !== null){
+              amt *= 150;
+              data.lm2 = 1;
+              ok = true;
+              console.log(`\n\n💰 EVENT!! ${message.author.username} got a 150x jackpot!! They got ${amt.toLocaleString()}! :o\n\n`);
+              message.author.send(`💰💰💰 You got the __150x jackpot__ and got **${Math.ceil(amt).toLocaleString()}**! :o\n\n`);
+            }
+            if(Math.random() < multrate*0.000122070312*data.lm3 && message.guild !== null){
+              amt *= 1750;
+              data.lm3 = 1;
+              ok = true;
+              console.log(`\n\n💰 EVENT!! ${message.author.username} got a 1500x jackpot!! They got ${amt.toLocaleString()}! :o\n\n`);
+              message.author.send(`💰💰💰💰\n💰💰💰💰You got the __1750x jackpot__ and got **${Math.ceil(amt).toLocaleString()}**! :o\n💰💰💰💰\n`);
+            }
+            if(Math.random() < multrate*0.00048828125 && message.guild !== null){
+              let jackpotstr = Math.round(Math.pow(Math.random()*0.875+0.125, 3)*1000*data.users.jRate[uID]);
+              amt *= jackpotstr;
+              ok = true;
+              console.log(`\n\n💰 EVENT!! ${message.author.username} got a ${jackpotstr}x jackpot!! They got ${amt.toLocaleString()}! :o\n\n`);
+              message.author.send(`💰💰💰💰You got the __${jackpotstr}x jackpot__ and got **${Math.ceil(amt).toLocaleString()}**! :o`);
+            }
           }
-          if(Math.random() < 0.0001*data.lm3 && message.guild !== null){
-            amt *= 1200;
-            data.lm3 = 1;
-            ok = true;
-            console.log(`\n\n💰 EVENT!! ${message.author.username} got a 1200x jackpot!! They got ${amt}! :o\n\n`);
-            message.author.send(`💰💰💰💰\n💰💰💰💰You got the __1200x jackpot__ and got **${Math.ceil(amt)}**! :o\n💰💰💰💰\n`);
-          }
-          message.channel.send((ok ? "💰" : "") + `  <@${message.author.id}> has collected ${Math.round(amt)} 🔹 !`);
+          message.channel.send((ok ? "💰" : "") + `  <@${message.author.id}> has collected ${Math.round(amt).toLocaleString()} 🔹 !\n\n${(bonus!==1)?("*Acquired a +" + Math.round(-100+bonus*100) + "% bonus for serverwide multiplier*"):""}` + (data.gMult > 1 ? "\n*Current bonus of +"+(Math.round(data.gMult*10-10))*10+"% for update*" : ""));
           data.users.coin[uID] = Math.round(data.users.coin[uID] + amt);
           saveJSON((ok ? "💰" : "➕") + " Collection by " + message.author.username + " - " + message.author.id + " " +  Math.floor((new Date().getTime() - data.users.lastCollect[uID]) / 60000) +  " minutes since last collect [] " + `${(data.lm).toFixed(2)}%, ${(data.lm2*0.5).toFixed(2)}%, ${(data.lm3*0.05).toFixed(2)}% [] deflation prog: ${data.gMult}`);
           data.users.lastCollect[uID] = new Date().getTime();
@@ -942,8 +1006,19 @@ client.on("message", (message) => {
         break;
       case "~$yaymorenpcs":
         for(var i = 0; i < parseInt(arg[1]); i ++){
-          
+          data.users.played[uID] ++;
+	    addLog(`**${message.author.username}** __joined__ the current game.`);
+	    let x = Math.round(Math.random()* (gmap[0].length-6) + 3);
+	    let y = Math.round(Math.random()* (gmap.length-6) + 3);
+	    players.push(new Player(x, y, arg[2]));
+	    playerData.push(new pData(arg[3], arg[4], nick, uID));
+	    gmap[y][x] = new eTile(nick, players[players.length-1].e);
+	    gmap[y+1][x] = new Tile(0);
+	    gmap[y][x+1] = new Tile(0);
+	    gmap[y-1][x] = new Tile(0); //Clear out area for spawning
+            gmap[y][x-1] = new Tile(0);
         }
+	message.delete();
         break;
       case "~$join":
       case "~$joinf":
