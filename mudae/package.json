@@ -1,0 +1,15 @@
+{
+  "name": "mudaebot",
+  "version": "1.0.0",
+  "description": "for lazy people who dont want to commit but still want to play mudae discord bot",
+  "main": "mudae.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "NovaSagittarii",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.2.0",
+    "dotenv": "^8.2.0"
+  }
+}
